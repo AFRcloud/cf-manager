@@ -1,4 +1,4 @@
-name: Manual Unzip ZIP File
+name: Manual Unzip and Push to Repo
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: 'file.zip'
 
 jobs:
-  unzip:
+  unzip_and_commit:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,19 +19,22 @@ jobs:
       - name: Install unzip
         run: sudo apt-get install unzip -y
 
-      - name: Buat direktori untuk hasil ekstraksi
-        run: mkdir -p extracted_files
-
-      - name: Unzip file berdasarkan input
+      - name: Unzip file
         run: |
-          echo "Ekstrak file: ${{ github.event.inputs.zip_filename }}"
+          mkdir -p extracted_files
           unzip "${{ github.event.inputs.zip_filename }}" -d extracted_files
 
-      - name: Tampilkan isi direktori hasil ekstraksi
-        run: ls -R extracted_files
+      - name: Setup Git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
-      - name: Upload hasil ekstraksi sebagai artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hasil-ekstraksi
-          path: extracted_files/
+      - name: Commit and push extracted files
+        run: |
+          git checkout -b unzipped-files || git checkout unzipped-files
+          mkdir -p extracted_output
+          cp -r extracted_files/* extracted_output/
+
+          git add extracted_output/
+          git commit -m "Add extracted files from ${{ github.event.inputs.zip_filename }}" || echo "Nothing to commit"
+          git push origin HEAD
