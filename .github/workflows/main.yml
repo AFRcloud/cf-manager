@@ -1,40 +1,41 @@
-name: Manual Unzip and Push to Repo
+name: Unzip and Commit to Repo
 
 on:
   workflow_dispatch:
     inputs:
       zip_filename:
-        description: 'Nama file ZIP yang ingin diekstrak (contoh: fileku.zip)'
+        description: 'Nama file ZIP yang ingin diekstrak (contoh: file.zip)'
         required: true
         default: 'file.zip'
 
 jobs:
-  unzip_and_commit:
+  unzip:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # Gunakan versi terbaru
 
       - name: Install unzip
         run: sudo apt-get install unzip -y
 
-      - name: Unzip file
+      - name: Unzip the file
         run: |
-          mkdir -p extracted_files
-          unzip "${{ github.event.inputs.zip_filename }}" -d extracted_files
+          echo "Unzipping ${{ github.event.inputs.zip_filename }}"
+          unzip "${{ github.event.inputs.zip_filename }}" -d extracted_output
 
-      - name: Setup Git user
+      - name: Commit and push extracted files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Commit and push extracted files
-        run: |
-          git checkout -b unzipped-files || git checkout unzipped-files
-          mkdir -p extracted_output
-          cp -r extracted_files/* extracted_output/
+          # Tambahkan file hasil unzip
+          git add extracted_output
 
-          git add extracted_output/
-          git commit -m "Add extracted files from ${{ github.event.inputs.zip_filename }}" || echo "Nothing to commit"
+          # Commit jika ada perubahan
+          git diff --cached --quiet || git commit -m "Unzipped ${{ github.event.inputs.zip_filename }}"
+
+          # Push ke branch yang sedang berjalan
           git push origin HEAD
