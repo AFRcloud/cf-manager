@@ -1,7 +1,12 @@
-name: Manual Unzip File
+name: Manual Unzip ZIP File
 
 on:
-  workflow_dispatch:  # Trigger manual
+  workflow_dispatch:
+    inputs:
+      zip_filename:
+        description: 'Nama file ZIP yang ingin diekstrak (contoh: fileku.zip)'
+        required: true
+        default: 'file.zip'
 
 jobs:
   unzip:
@@ -14,10 +19,19 @@ jobs:
       - name: Install unzip
         run: sudo apt-get install unzip -y
 
-      - name: Unzip file.zip to extracted_files directory
-        run: |
-          mkdir -p extracted_files
-          unzip file.zip -d extracted_files
+      - name: Buat direktori untuk hasil ekstraksi
+        run: mkdir -p extracted_files
 
-      - name: List extracted files
+      - name: Unzip file berdasarkan input
+        run: |
+          echo "Ekstrak file: ${{ github.event.inputs.zip_filename }}"
+          unzip "${{ github.event.inputs.zip_filename }}" -d extracted_files
+
+      - name: Tampilkan isi direktori hasil ekstraksi
         run: ls -R extracted_files
+
+      - name: Upload hasil ekstraksi sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hasil-ekstraksi
+          path: extracted_files/
